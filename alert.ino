@@ -3,11 +3,12 @@
 
 SSD1306  screen(0x3c, 5, 4);
 WiFiServer espServer(80);
+
 String request;
 boolean currentLineIsBlank = true;
 const int MAX_COLUMNS = 128;
-const char* ssid       = "X";
-const char* password   = "Y";
+const char* ssid = "VIVOFIBRA-E248";
+const char* password = "4C39C6681F";
 
 void setup()
 {
@@ -19,9 +20,10 @@ void setup()
     Serial.print(".");
   }
 
+  String myLocalIP = WiFi.localIP().toString();
   Serial.println("CONNECTED");
   Serial.print("IP=");
-  Serial.println(WiFi.localIP());
+  Serial.println(myLocalIP);
 
   espServer.begin();
 
@@ -29,13 +31,13 @@ void setup()
   screen.setFont(ArialMT_Plain_16);
 
   screen.clear();
-  screen.drawStringMaxWidth(0, 0, MAX_COLUMNS, "Wifi is on!");
+  screen.drawStringMaxWidth(0, 0, MAX_COLUMNS, "My IP is: " + myLocalIP);
   screen.display();
 }
 
 void loop()
 {
-  delay(1000);
+  delay(200);
   handleRequest();
 }
 
@@ -128,7 +130,7 @@ void handleRequest()
     }
   }
 
-  delay(50);
+  delay(25);
   request = "";
   client.stop();
 }
