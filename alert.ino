@@ -7,8 +7,8 @@ WiFiServer espServer(80);
 String request;
 boolean currentLineIsBlank = true;
 const int MAX_COLUMNS = 128;
-const char* ssid = "VIVOFIBRA-E248";
-const char* password = "4C39C6681F";
+const char* ssid = "X";
+const char* password = "Y";
 
 void setup()
 {
