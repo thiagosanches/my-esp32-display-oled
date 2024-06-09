@@ -17,7 +17,7 @@ WiFiServer espServer(80);
 String request;
 boolean currentLineIsBlank = true;
 const int MAX_COLUMNS = 128;
-const char* ssid = "X;
+const char* ssid = "X";
 const char* password = "Y";
 unsigned long millisTimer = 0;
 boolean blockDevice = false;
