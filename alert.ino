@@ -17,8 +17,8 @@ WiFiServer espServer(80);
 String request;
 boolean currentLineIsBlank = true;
 const int MAX_COLUMNS = 128;
-const char* ssid = "X";
-const char* password = "Y";
+const char* ssid = "YOUR_WIFI_GOES_HERE";
+const char* password = "YOUR_WIFI_PASSWWORD_GOES_HERE";
 unsigned long millisTimer = 0;
 boolean blockDevice = false;
 
@@ -767,12 +767,6 @@ void setup()
     for (;;); // Don't proceed, loop forever
   }
 
-  delay(2000);
-  display.setTextColor(WHITE);
-  display.setFont();
-  display.clearDisplay();
-  display.setTextSize(1);
-
   millisTimer = millis();
   Serial.begin(115200);
 
@@ -787,14 +781,14 @@ void setup()
   Serial.print("IP=");
   Serial.println(myLocalIP);
 
+  display.setTextColor(WHITE);
+  display.setFont();
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.setTextSize(2);
+  display.println(myLocalIP);
+  delay(5000);
   espServer.begin();
-
-  /*screen.init();
-    screen.setFont(ArialMT_Plain_16);
-
-    screen.clear();
-    screen.drawStringMaxWidth(0, 0, MAX_COLUMNS, "My IP: " + myLocalIP);
-    screen.display();*/
 }
 
 void loop()
