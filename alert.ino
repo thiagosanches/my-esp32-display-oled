@@ -17,8 +17,8 @@ WiFiServer espServer(80);
 String request;
 boolean currentLineIsBlank = true;
 const int MAX_COLUMNS = 128;
-const char* ssid = "YOUR_WIFI_GOES_HERE";
-const char* password = "YOUR_WIFI_PASSWWORD_GOES_HERE";
+const char* ssid = "";
+const char* password = "";
 unsigned long millisTimer = 0;
 boolean blockDevice = false;
 
@@ -787,6 +787,8 @@ void setup()
   display.setCursor(0,0);
   display.setTextSize(2);
   display.println(myLocalIP);
+  display.display();
+
   delay(5000);
   espServer.begin();
 }
