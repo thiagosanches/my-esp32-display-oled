@@ -19,8 +19,8 @@ WiFiServer espServer(80);
 String request;
 boolean currentLineIsBlank = true;
 const int MAX_COLUMNS = 128;
-const char* ssid = "X";
-const char* password = "Y";
+const char* ssid = "";
+const char* password = "";
 unsigned long millisTimer = 0;
 boolean blockDevice = false;
 
@@ -28,6 +28,7 @@ String messages[TOTAL_MESSAGES_QUEUE];
 unsigned long messagesReceivedTimers[TOTAL_MESSAGES_QUEUE];
 int messageCount = 0;
 int currentMessageIndex = 0;
+int temperature = 0;
 
 // 'frame_00_delay-0', 50x50px
 const unsigned char epd_bitmap_frame_00_delay_0 [] PROGMEM = {
@@ -907,6 +908,19 @@ String handleRequest()
           returnMessage = message;
         }
 
+        if (request.indexOf("/temperature?value=") != -1)
+        {
+          int equal = request.indexOf("=");
+          int protocol = request.indexOf("HTTP");
+
+          Serial.println(request.substring(equal + 1, protocol - 1));
+          String value = request.substring(equal + 1, protocol - 1);
+          //just the first to digits before decimal point, I dont have much space on status bar to handle it.
+          if (value.length() == 2 && isDigit(value[0]) && isDigit(value[1])) {
+            temperature = value.toInt();
+          }
+        }
+
         client.println("HTTP/1.1 200 OK");
         client.println("Content-Type: text/html");
         client.println("Connection: close");
@@ -928,7 +942,6 @@ String handleRequest()
   client.stop();
   return returnMessage;
 }
-
 
 void drawIconAndTextualInfo(int iconIndex, String textualInfo, const unsigned char icon[], int iconWidth, int iconHeight, int heightStatusBar, int positionStatusBarY, int pxDistanceFromIcons, int pxDistanceFromIconToText, int pxDistanceFromTextToLine, int pxDistanceFromTopStatusBarToText) {
   int startingPoint = pxDistanceFromIcons + ((iconWidth + pxDistanceFromIconToText + pxDistanceFromTextToLine) * iconIndex);
@@ -995,7 +1008,7 @@ void drawStatusBar(void) {
                          heightStatusBar, positionStatusBarY,
                          pxDistanceFromIcons, pxDistanceFromIconToText, pxDistanceFromTextToLine, pxDistanceFromTopStatusBarToText);
 
-  drawIconAndTextualInfo(2, "23", epd_bitmap_icons8_temperature_16,
+  drawIconAndTextualInfo(2, String(temperature), epd_bitmap_icons8_temperature_16,
                          iconWidth, iconHeight,
                          heightStatusBar, positionStatusBarY,
                          pxDistanceFromIcons, pxDistanceFromIconToText, pxDistanceFromTextToLine, pxDistanceFromTopStatusBarToText);
