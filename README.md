@@ -1,10 +1,9 @@
 # my-esp32-display-oled
 
 It can be used to display multiple alerts of your choice. In my case, I've been using it to show WhatsApp notifications and the currently playing track on Spotify.
-![image](https://user-images.githubusercontent.com/5191469/145686447-ada90158-8a96-493e-9ac1-0905391214d1.png)
 
 ## See in action
-[![Watch the video](https://img.youtube.com/vi/Qm0B8_kE16A/0.jpg)](https://youtu.be/Qm0B8_kE16A)
+[![Watch the video](https://img.youtube.com/vi/Qm0B8_kE16A/default.jpg)](https://youtu.be/Qm0B8_kE16A)
 
 It depends from the Tasker application for Android, that reads the notification from both applications and make a GET request to the esp32 with the message! That's it!
 
