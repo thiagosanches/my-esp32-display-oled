@@ -3,7 +3,7 @@
 It can be used to display multiple alerts of your choice. In my case, I've been using it to show WhatsApp notifications and the currently playing track on Spotify.
 
 ## See in action
-[![Watch the video](https://img.youtube.com/vi/Qm0B8_kE16A/default.jpg)](https://youtu.be/Qm0B8_kE16A)
+[![Watch the video](https://github.com/thiagosanches/my-esp32-display-oled/assets/5191469/f3219a80-7675-4765-bebf-73c2f309b074)](https://youtu.be/Qm0B8_kE16A)
 
 It relies on the Tasker application for Android, which reads notifications from both applications and sends a GET request to the ESP32 with the message. That's all!
 
