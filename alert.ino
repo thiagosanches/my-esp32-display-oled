@@ -11,14 +11,23 @@
 #define LOGO_WIDTH 50
 #define SCREEN_ADDRESS 0x3C
 #define TOTAL_FRAMES 28
+#define TEXT_SIZE_NORMAL 1
+#define TOTAL_MESSAGES_QUEUE 50
 
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 WiFiServer espServer(80);
 String request;
 boolean currentLineIsBlank = true;
 const int MAX_COLUMNS = 128;
+const char* ssid = "X";
+const char* password = "Y";
 unsigned long millisTimer = 0;
 boolean blockDevice = false;
+
+String messages[TOTAL_MESSAGES_QUEUE];
+unsigned long messagesReceivedTimers[TOTAL_MESSAGES_QUEUE];
+int messageCount = 0;
+int currentMessageIndex = 0;
 
 // 'frame_00_delay-0', 50x50px
 const unsigned char epd_bitmap_frame_00_delay_0 [] PROGMEM = {
@@ -754,6 +763,12 @@ const unsigned char* epd_bitmap_allArray[28] = {
   epd_bitmap_frame_27_delay_0
 };
 
+// 'icons8-email-16', 16x16px
+const unsigned char epd_bitmap_icons8_email_16 [] PROGMEM = {
+  0x00, 0xf8, 0x01, 0xfc, 0x03, 0xfe, 0x07, 0xff, 0x07, 0xff, 0x0f, 0xff, 0x0f, 0xff, 0x1f, 0xff,
+  0x7f, 0xfe, 0xff, 0xfe, 0xff, 0xfe, 0x1f, 0xfe, 0x07, 0xfe, 0x00, 0xff, 0x18, 0x1f, 0x0c, 0x02
+};
+
 void setup()
 {
   Serial.begin(115200);
@@ -782,8 +797,8 @@ void setup()
   display.setTextColor(WHITE);
   display.setFont();
   display.clearDisplay();
-  display.setCursor(0,0);
-  display.setTextSize(2);
+  display.setCursor(0, 0);
+  display.setTextSize(1);
   display.println(myLocalIP);
   display.display();
 
@@ -791,28 +806,45 @@ void setup()
   espServer.begin();
 }
 
+unsigned long now2 = 0;
 void loop()
 {
+  display.clearDisplay();
+
   idle();
+  drawStatusBar();
 
   String message = handleRequest();
   //For some reason Android Tasker, sends "Calendar syncing"
   //when there is no event, from time to time.
   if (message.length() > 0
-      && blockDevice
       && message != "Calendar syncing")
   {
-    Serial.println("HERE:" + message);
-    unsigned long messageReceivedTime = millis();
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.setTextSize(2);
-    display.println(message);
-    display.display();
-
-    while ((millis() - messageReceivedTime) < 30000);
-    blockDevice = false;
+    messages[messageCount] = message;
+    messageCount++;
+    now2  = millis();
   }
+
+  blockDevice = messageCount > 0;
+
+  if (messageCount > 0) {
+    display.fillRect(0, 0, 128, 45, SSD1306_BLACK);
+    display.setCursor(0, 0);
+    display.setTextColor(SSD1306_WHITE);
+    display.setTextSize(TEXT_SIZE_NORMAL);
+    display.println(messages[currentMessageIndex]);
+
+    unsigned long now = millis();
+    if ((now - now2) >= 5000) {
+      now2 = millis();
+      messageCount--;
+      currentMessageIndex++;
+    }
+  }
+  else
+    currentMessageIndex = 0;
+
+  display.display();
 }
 
 String handleRequest()
@@ -827,58 +859,8 @@ String handleRequest()
       request += c;
       if (c == '\n' && currentLineIsBlank)
       {
-        if (request.indexOf("/timer?text=") != -1)
-        {
-          blockDevice = true;
-          int equal = request.indexOf("=");
-          int protocol = request.indexOf("HTTP");
-
-          Serial.println(request.substring(equal + 1, protocol - 1));
-          String message = request.substring(equal + 1, protocol - 1);
-          message.replace("%20", " ");
-
-          //that's a big and silly workaround, please use an elegant solution!
-          message.replace("%C3%81", "Á");
-          message.replace("%C3%89", "É");
-          message.replace("%C3%8D", "Í");
-          message.replace("%C3%93", "Ó");
-          message.replace("%C3%9A", "Ú");
-          message.replace("%C3%A1", "á");
-          message.replace("%C3%A9", "é");
-          message.replace("%C3%AA", "ê");
-          message.replace("%C3%AD", "í");
-          message.replace("%C3%B3", "ó");
-          message.replace("%C3%BA", "ú");
-          message.replace("%C3%A0", "à");
-          message.replace("%C3%A8", "è");
-          message.replace("%C3%AC", "ì");
-          message.replace("%C3%B2", "ò");
-          message.replace("%C3%B9", "ù");
-          message.replace("%C3%80", "À");
-          message.replace("%C3%88", "È");
-          message.replace("%C3%8C", "Ì");
-          message.replace("%C3%92", "Ò");
-          message.replace("%C3%99", "Ù");
-          message.replace("%C3%87", "Ç");
-          message.replace("%C3%A7", "ç");
-          message.replace("%C3%83", "Ã");
-          message.replace("%C3%95", "Õ");
-          message.replace("%C3%A3", "ã");
-          message.replace("%C3%B5", "õ");
-
-          message.replace("%AA", "");
-          message.replace("%22", "");
-          message.replace("%E2", "");
-          message.replace("%80", "");
-          message.replace("%8E", "");
-          message.replace("%AC", "");
-          message.trim();
-          returnMessage = message;
-        }
-
         if (request.indexOf("/message?text=") != -1)
         {
-          blockDevice = false;
           int equal = request.indexOf("=");
           int protocol = request.indexOf("HTTP");
 
@@ -942,23 +924,96 @@ String handleRequest()
       }
     }
   }
-
-  delay(25);
   request = "";
   client.stop();
   return returnMessage;
 }
 
+
+void drawIconAndTextualInfo(int iconIndex, String textualInfo, const unsigned char icon[], int iconWidth, int iconHeight, int heightStatusBar, int positionStatusBarY, int pxDistanceFromIcons, int pxDistanceFromIconToText, int pxDistanceFromTextToLine, int pxDistanceFromTopStatusBarToText) {
+  int startingPoint = pxDistanceFromIcons + ((iconWidth + pxDistanceFromIconToText + pxDistanceFromTextToLine) * iconIndex);
+
+  if (textualInfo == "") {
+    display.drawBitmap(
+      startingPoint + 10, // need to make it better to put the half of the rectangle when there is no text.
+      positionStatusBarY + pxDistanceFromIcons,
+      icon, iconWidth, iconHeight, 0);
+  }
+  else {
+    display.drawBitmap(
+      startingPoint,
+      positionStatusBarY + pxDistanceFromIcons,
+      icon, iconWidth, iconHeight, 0);
+  }
+
+  display.setCursor(startingPoint + iconWidth + pxDistanceFromIconToText, pxDistanceFromTopStatusBarToText);
+  display.print(textualInfo);
+
+  display.drawLine(
+    startingPoint + iconWidth + pxDistanceFromIconToText + pxDistanceFromTextToLine, positionStatusBarY,
+    startingPoint + iconWidth + pxDistanceFromIconToText + pxDistanceFromTextToLine, positionStatusBarY + heightStatusBar, BLACK);
+}
+
+// 'icons8-temperature-16', 16x16px
+const unsigned char epd_bitmap_icons8_temperature_16 [] PROGMEM = {
+  0x1f, 0x87, 0x1f, 0x87, 0x19, 0x80, 0x19, 0x80, 0x19, 0x9f, 0x19, 0x9f, 0x19, 0x80, 0x39, 0xc0,
+  0x3f, 0xc7, 0x7f, 0xe7, 0x7f, 0xe0, 0x7f, 0xe0, 0x7f, 0xe7, 0x3f, 0xc7, 0x3f, 0xc0, 0x0f, 0x00
+};
+
+const unsigned char epd_bitmap_icons8_cloud_lightning_16 [] PROGMEM = {
+  0x03, 0xc0, 0x07, 0xe0, 0x0f, 0xf0, 0x0f, 0xf0, 0x3f, 0xf0, 0x7f, 0xfc, 0xff, 0xfe, 0xff, 0xff,
+  0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x38, 0x70, 0x3e, 0x7c, 0x0e, 0x1c, 0x1c, 0x38, 0x18, 0x30
+};
+
+const unsigned char epd_bitmap_icons8_gear_16 [] PROGMEM = {
+  0x00, 0x30, 0x01, 0xfe, 0x01, 0xfe, 0x01, 0xce, 0x03, 0x87, 0x03, 0x87, 0x01, 0xce, 0x01, 0xfe,
+  0x19, 0xfe, 0x7e, 0x30, 0x7e, 0x00, 0xe7, 0x00, 0xe7, 0x00, 0x7e, 0x00, 0x7e, 0x00, 0x18, 0x00
+};
+
+void drawStatusBar(void) {
+  const int heightStatusBar = 20;
+  const int positionStatusBarX = 0;
+  const int positionStatusBarY = 46;
+  const int pxDistanceFromIcons = 1;
+  const int pxDistanceFromIconToText = 3;
+  const int pxDistanceFromTopStatusBarToText = positionStatusBarY + 6;
+  const int pxDistanceFromTextToLine = 14;
+  const int iconWidth = 16;
+  const int iconHeight = 16;
+
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_BLACK);
+  display.fillRect(positionStatusBarX, positionStatusBarY, display.width(), heightStatusBar, SSD1306_WHITE);
+
+  drawIconAndTextualInfo(0, String(messageCount), epd_bitmap_icons8_email_16,
+                         iconWidth, iconHeight,
+                         heightStatusBar, positionStatusBarY,
+                         pxDistanceFromIcons, pxDistanceFromIconToText, pxDistanceFromTextToLine, pxDistanceFromTopStatusBarToText);
+
+  drawIconAndTextualInfo(1, "", epd_bitmap_icons8_cloud_lightning_16,
+                         iconWidth, iconHeight,
+                         heightStatusBar, positionStatusBarY,
+                         pxDistanceFromIcons, pxDistanceFromIconToText, pxDistanceFromTextToLine, pxDistanceFromTopStatusBarToText);
+
+  drawIconAndTextualInfo(2, "23", epd_bitmap_icons8_temperature_16,
+                         iconWidth, iconHeight,
+                         heightStatusBar, positionStatusBarY,
+                         pxDistanceFromIcons, pxDistanceFromIconToText, pxDistanceFromTextToLine, pxDistanceFromTopStatusBarToText);
+
+  drawIconAndTextualInfo(3, "", epd_bitmap_icons8_gear_16,
+                         iconWidth, iconHeight,
+                         heightStatusBar, positionStatusBarY,
+                         pxDistanceFromIcons, pxDistanceFromIconToText, pxDistanceFromTextToLine, pxDistanceFromTopStatusBarToText);
+}
+
+int frame = 0;
 void idle(void) {
   if (!blockDevice) {
-    for (int i = 0; i < TOTAL_FRAMES; i++) {
-      display.clearDisplay();
-      display.drawBitmap(
-        (display.width()  - LOGO_WIDTH ) / 2,
-        (display.height() - LOGO_HEIGHT) / 2,
-        epd_bitmap_allArray[i], LOGO_WIDTH, LOGO_HEIGHT, 1);
-
-      display.display();
-    }
+    display.fillRect((display.width()  - LOGO_WIDTH ) / 2, (display.height() - LOGO_HEIGHT) / 2, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_BLACK);
+    display.drawBitmap(
+      (display.width()  - LOGO_WIDTH ) / 2,
+      (display.height() - LOGO_HEIGHT) / 2,
+      epd_bitmap_allArray[frame], LOGO_WIDTH, LOGO_HEIGHT, 1);
+    frame = (frame + 1) % TOTAL_FRAMES;
   }
 }
